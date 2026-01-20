@@ -1,6 +1,9 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.util.ArrayList;
 import java.util.Arrays;
 import javax.swing.*;
 import javax.swing.border.*;
@@ -32,6 +35,10 @@ public class Calculator {
 
         JPanel buttonsPanel = new JPanel();
 
+        // Calculation history
+        ArrayList<String> history = new ArrayList<>();
+        JTextArea historyArea = new JTextArea();
+
         // A+B , A-B , A*B , A/B
         String A= "0";
         String B= null;
@@ -59,6 +66,26 @@ public class Calculator {
             buttonsPanel.setLayout(new GridLayout(5,4));
             buttonsPanel.setBackground(customBlack);
             frame.add(buttonsPanel);
+
+            // Add keyboard support
+            frame.addKeyListener(new KeyListener() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    char keyChar = e.getKeyChar();
+                    if (Character.isDigit(keyChar) || keyChar == '.' || keyChar == '+' || keyChar == '-' || keyChar == '*' || keyChar == '/') {
+                        simulateButtonClick(String.valueOf(keyChar));
+                    } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        simulateButtonClick("=");
+                    } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                        simulateButtonClick("AC");
+                    }
+                }
+                @Override
+                public void keyReleased(KeyEvent e) {}
+                @Override
+                public void keyTyped(KeyEvent e) {}
+            });
+            frame.setFocusable(true);
 
             for (int i =0 ; i<buttonValues.length; i++)
             {
@@ -93,38 +120,48 @@ public class Calculator {
                         String buttonValue = button.getText();
                         if(Arrays.asList(rightSymbols).contains(buttonValue))
                         {
-                            if(buttonValue == "=")
+                            if(buttonValue.equals("="))
                             {
-                                if(A != null)
+                                if(A != null && operator != null)
                                 {
                                     B = displayLabel.getText();
                                     double numA = Double.parseDouble(A);
                                     double numB = Double.parseDouble(B);
+                                    double result = 0;
+                                    boolean validOperation = true;
                                     
-                                    if(operator == "+")
+                                    if(operator.equals("+"))
                                     {
-                                        displayLabel.setText(removeZeroDecimal(numA + numB));
+                                        result = numA + numB;
                                     }
-                                    else if(operator == "-")
+                                    else if(operator.equals("-"))
                                     {
-                                        displayLabel.setText(removeZeroDecimal(numA - numB));
+                                        result = numA - numB;
                                     }
-                                    else if(operator == "×")
+                                    else if(operator.equals("×"))
                                     {
-                                        displayLabel.setText(removeZeroDecimal(numA * numB));
+                                        result = numA * numB;
                                     }
-                                    else if(operator == "÷")
+                                    else if(operator.equals("÷"))
                                     {
                                         if(numB != 0)
                                         {
-                                            displayLabel.setText(removeZeroDecimal(numA / numB));
+                                            result = numA / numB;
                                         }
                                         else
                                         {
-                                            displayLabel.setText("Error");
+                                            displayLabel.setText("Error: Division by 0");
+                                            validOperation = false;
                                         }
                                     }
-                                    clearAll();
+                                    
+                                    if(validOperation) {
+                                        String resultStr = removeZeroDecimal(result);
+                                        displayLabel.setText(resultStr);
+                                        // Add to history
+                                        addToHistory(numA + " " + operator + " " + numB + " = " + resultStr);
+                                        clearAll();
+                                    }
                                 }
                                 
                             }
@@ -159,6 +196,20 @@ public class Calculator {
                                 double numDisplay = Double.parseDouble(displayLabel.getText());
                                 numDisplay /= 100;
                                 displayLabel.setText(removeZeroDecimal(numDisplay));
+                            }
+                        }
+                        else if(buttonValue.equals("√"))
+                        {
+                            double numDisplay = Double.parseDouble(displayLabel.getText());
+                            if(numDisplay >= 0)
+                            {
+                                double result = Math.sqrt(numDisplay);
+                                displayLabel.setText(removeZeroDecimal(result));
+                                addToHistory("√(" + numDisplay + ") = " + removeZeroDecimal(result));
+                            }
+                            else
+                            {
+                                displayLabel.setText("Error: Negative number");
                             }
                         }
                         else{
@@ -203,6 +254,55 @@ public class Calculator {
                 {
                     return Double.toString(numDisplay);
                 }
+        }
+
+        // Add calculation to history
+        void addToHistory(String calculation) {
+            history.add(calculation);
+            System.out.println("Calculation: " + calculation);
+        }
+
+        // Simulate button click for keyboard input
+        void simulateButtonClick(String value) {
+            if("+-×÷".contains(value)) {
+                if(operator == null) {
+                    A = displayLabel.getText();
+                    displayLabel.setText("0");
+                }
+                operator = value.equals("+") ? "+" : value.equals("-") ? "-" : value.equals("*") ? "×" : "÷";
+            } else if(value.equals("=")) {
+                if(A != null && operator != null) {
+                    B = displayLabel.getText();
+                    double numA = Double.parseDouble(A);
+                    double numB = Double.parseDouble(B);
+                    double result = 0;
+                    
+                    if(operator.equals("+")) result = numA + numB;
+                    else if(operator.equals("-")) result = numA - numB;
+                    else if(operator.equals("×")) result = numA * numB;
+                    else if(operator.equals("÷")) {
+                        if(numB != 0) result = numA / numB;
+                        else {
+                            displayLabel.setText("Error: Division by 0");
+                            return;
+                        }
+                    }
+                    
+                    String resultStr = removeZeroDecimal(result);
+                    displayLabel.setText(resultStr);
+                    addToHistory(numA + " " + operator + " " + numB + " = " + resultStr);
+                    clearAll();
+                }
+            } else if(value.equals("AC")) {
+                clearAll();
+                displayLabel.setText("0");
+            } else if(Character.isDigit(value.charAt(0)) || value.equals(".")) {
+                if(displayLabel.getText().equals("0") && !value.equals(".")) {
+                    displayLabel.setText(value);
+                } else if(!value.equals(".") || !displayLabel.getText().contains(".")) {
+                    displayLabel.setText(displayLabel.getText() + value);
+                }
+            }
         }
     }
     
