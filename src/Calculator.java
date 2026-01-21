@@ -11,8 +11,8 @@ import javax.swing.border.*;
 public class Calculator {
     
     
-        int boardWidth = 360;
-        int boardHeight = 540;
+        int boardWidth = 600;
+        int boardHeight = 700;
 
         Color customLightGray = new Color(221,212,210);
         Color customDarkGray = new Color(80,80,80);
@@ -20,14 +20,15 @@ public class Calculator {
         Color customOrange = new Color(255,149,0);
 
         String[] buttonValues = {
-        "AC", "+/-", "%", "÷", 
-        "7", "8", "9", "×", 
-        "4", "5", "6", "-",
-        "1", "2", "3", "+",
-        "0", ".", "√", "="
+        "AC", "+/-", "%", "÷", "sin", "cos",
+        "7", "8", "9", "×", "tan", "log",
+        "4", "5", "6", "-", "ln", "x²",
+        "1", "2", "3", "+", "x^y", "√",
+        "0", ".", "=", "π", "e", "!"
         };
         String[] rightSymbols = {"÷", "×", "-", "+", "="};
         String[] topSymbols = {"AC", "+/-", "%"};
+        String[] scientificFunctions = {"sin", "cos", "tan", "log", "ln", "x²", "x^y", "√", "π", "e", "!"};
 
         JFrame frame = new JFrame("Calculator");
         JLabel displayLabel = new JLabel();
@@ -63,7 +64,7 @@ public class Calculator {
             displayPanel.add(displayLabel);
             frame.add(displayPanel, BorderLayout.NORTH);
 
-            buttonsPanel.setLayout(new GridLayout(5,4));
+            buttonsPanel.setLayout(new GridLayout(5,6));
             buttonsPanel.setBackground(customBlack);
             frame.add(buttonsPanel);
 
@@ -107,6 +108,11 @@ public class Calculator {
                     button.setBackground(customOrange);
                     button.setForeground(Color.WHITE);
                 }
+                else if (Arrays.asList(scientificFunctions).contains(buttonValue))
+                {
+                    button.setBackground(new Color(100, 150, 200));
+                    button.setForeground(Color.WHITE);
+                }
                 else
                 {
                     button.setBackground(customDarkGray);
@@ -122,7 +128,9 @@ public class Calculator {
                         {
                             if(buttonValue.equals("="))
                             {
-                                if(A != null && operator != null)
+                                if(operator != null && operator.equals("x^y")) {
+                                    handleExponent();
+                                } else if(A != null && operator != null)
                                 {
                                     B = displayLabel.getText();
                                     double numA = Double.parseDouble(A);
@@ -198,19 +206,9 @@ public class Calculator {
                                 displayLabel.setText(removeZeroDecimal(numDisplay));
                             }
                         }
-                        else if(buttonValue.equals("√"))
+                        else if(Arrays.asList(scientificFunctions).contains(buttonValue))
                         {
-                            double numDisplay = Double.parseDouble(displayLabel.getText());
-                            if(numDisplay >= 0)
-                            {
-                                double result = Math.sqrt(numDisplay);
-                                displayLabel.setText(removeZeroDecimal(result));
-                                addToHistory("√(" + numDisplay + ") = " + removeZeroDecimal(result));
-                            }
-                            else
-                            {
-                                displayLabel.setText("Error: Negative number");
-                            }
+                            handleScientificFunction(buttonValue);
                         }
                         else{
                             if(buttonValue.equals("."))
@@ -303,6 +301,112 @@ public class Calculator {
                     displayLabel.setText(displayLabel.getText() + value);
                 }
             }
+        }
+
+        // Handle scientific functions
+        void handleScientificFunction(String function) {
+            try {
+                double numDisplay = Double.parseDouble(displayLabel.getText());
+                double result = 0;
+                String resultStr = "";
+                
+                switch(function) {
+                    case "sin":
+                        result = Math.sin(Math.toRadians(numDisplay));
+                        resultStr = "sin(" + numDisplay + "°) = " + removeZeroDecimal(result);
+                        break;
+                    case "cos":
+                        result = Math.cos(Math.toRadians(numDisplay));
+                        resultStr = "cos(" + numDisplay + "°) = " + removeZeroDecimal(result);
+                        break;
+                    case "tan":
+                        result = Math.tan(Math.toRadians(numDisplay));
+                        resultStr = "tan(" + numDisplay + "°) = " + removeZeroDecimal(result);
+                        break;
+                    case "log":
+                        if(numDisplay > 0) {
+                            result = Math.log10(numDisplay);
+                            resultStr = "log10(" + numDisplay + ") = " + removeZeroDecimal(result);
+                        } else {
+                            displayLabel.setText("Error: log of non-positive");
+                            return;
+                        }
+                        break;
+                    case "ln":
+                        if(numDisplay > 0) {
+                            result = Math.log(numDisplay);
+                            resultStr = "ln(" + numDisplay + ") = " + removeZeroDecimal(result);
+                        } else {
+                            displayLabel.setText("Error: ln of non-positive");
+                            return;
+                        }
+                        break;
+                    case "√":
+                        if(numDisplay >= 0) {
+                            result = Math.sqrt(numDisplay);
+                            resultStr = "√(" + numDisplay + ") = " + removeZeroDecimal(result);
+                        } else {
+                            displayLabel.setText("Error: sqrt of negative");
+                            return;
+                        }
+                        break;
+                    case "x²":
+                        result = numDisplay * numDisplay;
+                        resultStr = "(" + numDisplay + ")² = " + removeZeroDecimal(result);
+                        break;
+                    case "π":
+                        displayLabel.setText(removeZeroDecimal(Math.PI));
+                        addToHistory("π = " + removeZeroDecimal(Math.PI));
+                        return;
+                    case "e":
+                        displayLabel.setText(removeZeroDecimal(Math.E));
+                        addToHistory("e = " + removeZeroDecimal(Math.E));
+                        return;
+                    case "!":
+                        if(numDisplay >= 0 && numDisplay == (int)numDisplay) {
+                            result = factorial((int)numDisplay);
+                            resultStr = numDisplay + "! = " + removeZeroDecimal(result);
+                        } else {
+                            displayLabel.setText("Error: Invalid factorial");
+                            return;
+                        }
+                        break;
+                    case "x^y":
+                        displayLabel.setText("Enter exponent");
+                        A = String.valueOf(numDisplay);
+                        operator = "x^y";
+                        return;
+                }
+                
+                displayLabel.setText(removeZeroDecimal(result));
+                addToHistory(resultStr);
+            } catch(NumberFormatException e) {
+                displayLabel.setText("Error: Invalid input");
+            }
+        }
+
+        // Helper method to calculate x^y when operator is "x^y"
+        void handleExponent() {
+            if(A != null && operator != null && operator.equals("x^y")) {
+                double base = Double.parseDouble(A);
+                double exponent = Double.parseDouble(displayLabel.getText());
+                double result = Math.pow(base, exponent);
+                String resultStr = base + "^" + exponent + " = " + removeZeroDecimal(result);
+                displayLabel.setText(removeZeroDecimal(result));
+                addToHistory(resultStr);
+                clearAll();
+            }
+        }
+
+        // Calculate factorial
+        long factorial(int n) {
+            if(n < 0) return 0;
+            if(n == 0 || n == 1) return 1;
+            long result = 1;
+            for(int i = 2; i <= n; i++) {
+                result *= i;
+            }
+            return result;
         }
     }
     
