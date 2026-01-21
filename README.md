@@ -1,19 +1,38 @@
-# JCalculator Pro
+# JCalculator Pro - Ultra Vibrant Edition
 
-An advanced professional-grade scientific GUI calculator application built in Java using Swing. Features a modern multi-tab interface with dark/light theme customization, unit conversion, Bessel functions, history export, custom keyboard shortcuts, scientific notation, and extensive mathematical operations.
+An advanced professional-grade scientific GUI calculator application built in Java using Swing. Features a stunning multi-tab interface with vibrant color-coded buttons, dark/light theme customization, unit conversion, Bessel functions, history export, custom keyboard shortcuts, scientific notation, and extensive mathematical operations. **NOW WITH EGYPTIAN POUND (EGP) SUPPORT!**
 
 ## Features
+
+### 🎨 Enhanced Visual Design
+- **Vibrant Color Palette** - Beautiful, modern UI with 10+ vibrant accent colors
+  - Vibrant Green for equals (✓ calculations)
+  - Vibrant Orange for operators with hover effects
+  - Vibrant Blue for scientific functions
+  - Vibrant Purple for memory functions
+  - Vibrant Cyan for special functions
+  - Vibrant Pink for Bessel functions
+  - Vibrant Red for clear functions
+  - Vibrant Yellow, Teal, Indigo for enhanced contrast
+- **Interactive Button Effects** - Smooth hover effects that brighten on interaction
+- **Premium Typography** - Monospaced fonts for display, bold Arial for buttons
+- **Gradient Displays** - Beautiful gradient-based display panel background
+- **Modern Theme** - Completely redesigned dark and light modes
 
 ### Core Functionality
 - **Clean GUI Interface** - User-friendly graphical interface built with Java Swing with tabbed navigation
 - **Color-Coded Buttons** - 
-  - Light gray for utility functions (AC, +/-, %)
-  - Orange for operators (÷, ×, -, +, =)
-  - Blue for scientific and advanced functions
-  - Green for special functions
-  - Dark gray for numbers and decimal point
-- **Display** - Large display label showing current input/output with customizable decimal precision and scientific notation support
+  - **Red** for utility functions (AC, +/-, %)
+  - **Orange** for operators (÷, ×, -, +) with brightness hover
+  - **Blue** for scientific functions
+  - **Purple** for memory functions (M+, M-, MR, MC)
+  - **Green** for equals (=)
+  - **Pink** for Bessel functions
+  - **Cyan** for history and export functions
+  - **Dark Gray/Light Gray** for number buttons
+- **Display** - Premium display with gradient background, cyan text in dark mode, indigo text in light mode
 - **Tabbed Interface** - Calculator, Conversions, and Settings tabs for organized feature access
+- **Hover Effects** - All buttons brighten on mouse hover for better interactivity
 
 ### Arithmetic Operations
 - Basic arithmetic: Addition, subtraction, multiplication, and division
@@ -29,13 +48,13 @@ An advanced professional-grade scientific GUI calculator application built in Ja
 - **Power Functions**: x², x^y (custom exponent)
 - **Root Functions**: √ (square root)
 - **Advanced**: ! (factorial for positive integers)
-- **Bessel Functions**: J0, J1, Y0, Y1 (Bessel functions of the first and second kind)
+- **Bessel Functions**: J0, J1, Y0, Y1 (pink colored buttons)
 - **Mathematical Constants**: π (pi), e (Euler's number)
 
 ### Advanced Features
-1. **Theme Customization** - Switch between dark mode and light mode via Theme menu
+1. **Theme Customization** - Switch between vibrant dark mode and vibrant light mode via Theme menu
 2. **Calculation History** - Visible scrollable pane showing all calculations with syntax highlighting and timestamps
-3. **Memory Functions** - M+ (add), M- (subtract), MR (recall), MC (clear)
+3. **Memory Functions** - M+ (add), M- (subtract), MR (recall), MC (clear) with purple buttons
 4. **Angle Modes** - Select between Degrees, Radians, and Gradians for trigonometric functions
 5. **Decimal Precision** - Choose to display 2, 4, 6, or 8 decimal places
 6. **Scientific Notation** - Toggle scientific notation display (e.g., 1.23e+05)
@@ -46,18 +65,18 @@ An advanced professional-grade scientific GUI calculator application built in Ja
   - Length: meters, kilometers, centimeters, millimeters, miles, yards, feet, inches
   - Weight: kilograms, grams, milligrams, pounds, ounces, tonnes
   - Temperature: Celsius, Fahrenheit, Kelvin
-- **Currency Conversion**: USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY
+- **Currency Conversion**: USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY, **EGP (Egyptian Pound)**
 
 ### Data Export & History
 - **Export Calculation History as JSON** - Complete history with timestamps in JSON format
 - **Export Calculation History as CSV** - Spreadsheet-compatible format
-- **Real-time History Display** - All calculations visible with color-coded results
+- **Real-time History Display** - All calculations visible with green color-coded results
 - **Clear History** - Reset history at any time
 
 ### Custom Settings & Configuration
 - **Custom Keyboard Shortcuts** - Configure custom shortcuts for functions (e.g., q=sqrt, s=sin, etc.)
 - **Display Formatting** - Toggle scientific notation, adjust decimal places
-- **Theme Settings** - Dark/Light mode configuration
+- **Theme Settings** - Vibrant Dark/Light mode configuration
 - **Keyboard Shortcuts Reference** - Built-in help for all keyboard shortcuts
 
 ### Enhanced Display Features
@@ -336,6 +355,14 @@ The calculator window will appear with all buttons, memory panel, and history pa
 5. Click `Convert`
 6. Result: `108.70` USD (approximate, rates may vary)
 
+#### Currency Conversion (USD to EGP - Egyptian Pound) ✨ NEW
+1. Click `Conversions` tab
+2. Enter `100` in the currency conversion field
+3. Select `USD` (US Dollars) in "From" dropdown
+4. Select `EGP` (Egyptian Pound) in "To" dropdown
+5. Click `Convert`
+6. Result: `3065` EGP (Egyptian Pound conversion at rate 1 USD = 30.65 EGP)
+
 ### Scientific Notation Examples
 
 #### Display Number in Scientific Notation
@@ -380,7 +407,6 @@ The calculator window will appear with all buttons, memory panel, and history pa
 3. Press `s` for sin, `c` for cos, `t` for tan, etc.
 
 ### Settings Configuration
-
 #### Adjust Decimal Precision
 1. In Settings tab, find "Display Format" section
 2. Select desired decimal places from dropdown
@@ -388,8 +414,32 @@ The calculator window will appear with all buttons, memory panel, and history pa
 
 #### Switch Display Theme
 1. In Settings tab, check/uncheck "Dark Mode"
-2. All interface elements update immediately
-3. Dark Mode OFF = Light Mode
+2. All interface elements update immediately with vibrant colors
+3. Dark Mode OFF = Light Mode with vibrant indigo and orange tones
+
+### Visual Enhancement Features
+
+#### Interactive Button Hover Effects
+1. Hover your mouse over any calculator button
+2. Button brightens by +40 RGB values
+3. Cursor changes to hand pointer for interactivity
+4. Each category of buttons has distinct vibrant colors
+
+#### Vibrant Color Categories
+- **Red buttons** for clearing (AC, +/-, %)
+- **Orange buttons** for operators with hover brightening
+- **Blue buttons** for scientific functions
+- **Purple buttons** for memory operations
+- **Green button** for equals (calculation results)
+- **Pink buttons** for Bessel functions
+- **Cyan buttons** for history and export functions
+- **Gray buttons** for number input
+
+#### Display with Gradient Background
+1. Display panel features a beautiful gradient background
+2. Text color changes based on theme (Cyan in dark, Indigo in light)
+3. Monospaced font for better number readability
+4. Large 65pt font for easy visibility
 
 #### View Keyboard Shortcuts Reference
 1. In Settings tab, find "Keyboard Shortcuts" section
@@ -417,29 +467,40 @@ Main calculator class (900+ lines) containing:
 - **Error Handling**: Domain checking for mathematical operations
 - **Angle Conversion**: Support for Degrees, Radians, Gradians with automatic conversion
 
-## Color Scheme
+## Color Scheme - Vibrant & Modern
 
-### Dark Mode (Default)
-- **Display Background**: Black (#1C1C1C)
-- **Display Text**: White
-- **History Results**: Green (syntax highlighting for results)
-- **Top Buttons**: Light Gray (#DDD4D2)
-- **Operator Buttons**: Orange (#FF9500)
-- **Scientific Buttons**: Blue (#6496C8)
-- **Special Function Buttons**: Green (#64C864)
-- **Number Buttons**: Dark Gray (#505050)
-- **Panel Background**: Dark Gray (#282828)
+### Dark Mode (Ultra Vibrant)
+- **Display Background**: Deep navy blue (#0F0F19) with gradient
+- **Display Text**: Vibrant Cyan (#22D3EE)
+- **History Results**: Vibrant Green (#22C55E) with bold styling
+- **Clear Buttons (AC, +/-, %)**: Vibrant Red (#EF4444)
+- **Operator Buttons** (+, -, ×, ÷): Vibrant Orange (#FF7800)
+- **Scientific Buttons**: Vibrant Blue (#3B82F6)
+- **Memory Buttons** (M+, M-, MR, MC): Vibrant Purple (#9333EA)
+- **Equals Button**: Vibrant Green (#22C55E)
+- **Bessel Buttons** (J0, J1, Y0, Y1): Vibrant Pink (#EC4891)
+- **Special Buttons** (History, Export): Vibrant Cyan (#22D3EE)
+- **Number Buttons** (0-9, .): Dark Gray (#3C3C46)
+- **Panel Background**: Deep Navy (#191933)
 
-### Light Mode
-- **Display Background**: Light Gray (#F0F0F0)
-- **Display Text**: Black
-- **History Results**: Green (syntax highlighting for results)
-- **Top Buttons**: Light Gray (#DDD4D2)
-- **Operator Buttons**: Orange (#FF9500)
-- **Scientific Buttons**: Light Blue (#87CEEB)
-- **Special Function Buttons**: Light Green (#90EE90)
-- **Number Buttons**: Light Gray (#F5F5F5)
-- **Panel Background**: Very Light (#F5F5F5)
+### Light Mode (Ultra Vibrant)
+- **Display Background**: Light blue (#F5F7FA) with gradient
+- **Display Text**: Vibrant Indigo (#6366F1)
+- **History Results**: Vibrant Green (#22C55E) with bold styling
+- **Clear Buttons**: Vibrant Red (#EF4444)
+- **Operator Buttons**: Vibrant Orange (#FF7800)
+- **Scientific Buttons**: Vibrant Blue (#3B82F6)
+- **Memory Buttons**: Vibrant Purple (#9333EA)
+- **Equals Button**: Vibrant Green (#22C55E)
+- **Bessel Buttons**: Vibrant Pink (#EC4891)
+- **Special Buttons**: Vibrant Cyan (#22D3EE)
+- **Number Buttons** (0-9, .): Light Gray (#C8C8D2)
+- **Panel Background**: Very Light (#F5F7FA)
+
+### Hover Effects
+- All buttons brighten by +40 RGB values on mouse hover
+- Smooth interactive feedback
+- Hand cursor appears on button hover
 
 ## Window Size & Layout
 
@@ -875,7 +936,8 @@ The calculator includes comprehensive error handling for:
 - Automatic conversion between all temperature scales
 
 ### Currency Conversions
-- USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY
+- **Major Currencies**: USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY
+- **Middle East**: EGP (Egyptian Pound) ✨ NEW!
 - Real-time rate support (rates as of 2026)
 
 ## Technical Specifications
@@ -952,6 +1014,7 @@ java -jar Calculator.jar
 
 ## Version History
 
+- **v2.6** (January 2026) - Ultra Vibrant Edition: 10+ vibrant color scheme, interactive hover effects, Egyptian Pound (EGP) currency support, gradient displays
 - **v2.5** (January 2026) - Major expansion with Bessel functions, conversions, export, custom shortcuts
 - **v2.0** (January 2026) - Complete rewrite with advanced features
 - **v1.2** (January 2026) - Added keyboard support and scientific functions
@@ -961,4 +1024,5 @@ java -jar Calculator.jar
 
 **Last Updated**: January 21, 2026
 **Repository**: https://github.com/MuhammadMagdyy/JCalculator
+**Latest Version**: v2.6 - Ultra Vibrant Edition
 **Status**: Production Ready ✓

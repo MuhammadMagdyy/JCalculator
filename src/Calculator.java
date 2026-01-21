@@ -18,17 +18,23 @@ public class Calculator extends JFrame implements KeyListener {
     int boardWidth = 1200;
     int boardHeight = 900;
 
-    // Theme colors
-    Color darkBg = new Color(28,28,28);
-    Color darkPanel = new Color(40,40,40);
-    Color lightBg = new Color(240,240,240);
-    Color lightPanel = new Color(230,230,230);
+    // Theme colors - Vibrant and Modern
+    Color darkBg = new Color(15, 15, 25);
+    Color darkPanel = new Color(25, 35, 50);
+    Color lightBg = new Color(245, 247, 250);
+    Color lightPanel = new Color(235, 240, 248);
     
-    Color customLightGray = new Color(221,212,210);
-    Color customDarkGray = new Color(80,80,80);
-    Color customOrange = new Color(255,149,0);
-    Color customBlue = new Color(100,150,200);
-    Color customGreen = new Color(100,200,100);
+    // Vibrant accent colors for enhanced UI
+    Color vibrantOrange = new Color(255, 120, 0);
+    Color vibrantPurple = new Color(147, 51, 234);
+    Color vibrantBlue = new Color(59, 130, 246);
+    Color vibrantGreen = new Color(34, 197, 94);
+    Color vibrantPink = new Color(236, 72, 153);
+    Color vibrantCyan = new Color(34, 211, 238);
+    Color vibrantRed = new Color(239, 68, 68);
+    Color vibrantTeal = new Color(20, 184, 166);
+    Color vibrantYellow = new Color(251, 191, 36);
+    Color vibrantIndigo = new Color(99, 102, 241);
     
     // GUI Components
     JLabel displayLabel = new JLabel();
@@ -145,6 +151,7 @@ public class Calculator extends JFrame implements KeyListener {
         currencyRates.put("AUD", 1.53);
         currencyRates.put("CHF", 0.88);
         currencyRates.put("CNY", 7.24);
+        currencyRates.put("EGP", 30.65);
     }
     
     private void initializeCustomShortcuts() {
@@ -261,7 +268,7 @@ public class Calculator extends JFrame implements KeyListener {
         
         // Currency conversion
         JPanel currencyPanel = createConversionSubPanel("Currency Conversion", 
-            new String[]{"USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY"}, 
+            new String[]{"USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "EGP"}, 
             currencyRates, "Currency");
         
         conversionPanel.add(lengthPanel);
@@ -469,13 +476,67 @@ public class Calculator extends JFrame implements KeyListener {
     
     private JButton createButton(String label) {
         JButton btn = new JButton(label);
-        btn.setFont(new Font("Arial", Font.BOLD, 14));
+        btn.setFont(new Font("Arial", Font.BOLD, 13));
         btn.setOpaque(true);
         btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setRolloverEnabled(true);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Set colors based on button type and theme
+        if (label.equals("=")) {
+            btn.setBackground(vibrantGreen);
+            btn.setForeground(Color.WHITE);
+        } else if (label.equals("AC") || label.equals("+/-") || label.equals("%")) {
+            btn.setBackground(isDarkMode ? vibrantRed : vibrantRed);
+            btn.setForeground(Color.WHITE);
+        } else if (label.equals("÷") || label.equals("×") || label.equals("-") || label.equals("+")) {
+            btn.setBackground(vibrantOrange);
+            btn.setForeground(Color.WHITE);
+        } else if (Arrays.asList(scientificFunctions).contains(label) || 
+                   Arrays.asList(advancedFunctions).contains(label) ||
+                   label.equals("Bessel") || label.equals("Conversion")) {
+            btn.setBackground(vibrantBlue);
+            btn.setForeground(Color.WHITE);
+        } else if (label.equals("M+") || label.equals("M-") || label.equals("MR") || label.equals("MC")) {
+            btn.setBackground(vibrantPurple);
+            btn.setForeground(Color.WHITE);
+        } else if (label.equals("Hist") || label.equals("Export")) {
+            btn.setBackground(vibrantCyan);
+            btn.setForeground(Color.WHITE);
+        } else if (Arrays.asList(besselFunctions).contains(label) || label.equals("J0") || 
+                   label.equals("J1") || label.equals("Y0") || label.equals("Y1")) {
+            btn.setBackground(vibrantPink);
+            btn.setForeground(Color.WHITE);
+        } else if (label.matches("[0-9.]")) {
+            btn.setBackground(isDarkMode ? new Color(60, 60, 70) : new Color(200, 200, 210));
+            btn.setForeground(isDarkMode ? vibrantCyan : vibrantIndigo);
+        } else {
+            btn.setBackground(vibrantTeal);
+            btn.setForeground(Color.WHITE);
+        }
+        
+        // Add hover effect
+        Color originalBg = btn.getBackground();
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btn.setBackground(brighten(originalBg));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btn.setBackground(originalBg);
+            }
+        });
         
         btn.addActionListener(e -> handleButtonClick(label));
         
         return btn;
+    }
+    
+    private Color brighten(Color color) {
+        int r = Math.min(255, color.getRed() + 40);
+        int g = Math.min(255, color.getGreen() + 40);
+        int b = Math.min(255, color.getBlue() + 40);
+        return new Color(r, g, b);
     }
     
     private void handleButtonClick(String label) {
@@ -870,7 +931,7 @@ public class Calculator extends JFrame implements KeyListener {
                     historyPane.getDocument().insertString(historyPane.getDocument().getLength(), 
                         parts[0] + "= ", attrs);
                     
-                    StyleConstants.setForeground(attrs, customGreen);
+                    StyleConstants.setForeground(attrs, vibrantGreen);
                     StyleConstants.setBold(attrs, true);
                     historyPane.getDocument().insertString(historyPane.getDocument().getLength(), 
                         parts[1] + "\n", attrs);
@@ -954,7 +1015,7 @@ public class Calculator extends JFrame implements KeyListener {
     
     private void applyTheme() {
         Color bgColor = isDarkMode ? darkBg : lightBg;
-        Color textColor = isDarkMode ? Color.WHITE : Color.BLACK;
+        Color textColor = isDarkMode ? vibrantCyan : vibrantIndigo;
         Color panelColor = isDarkMode ? darkPanel : lightPanel;
         
         displayLabel.setBackground(bgColor);
@@ -963,10 +1024,14 @@ public class Calculator extends JFrame implements KeyListener {
         historyPane.setBackground(panelColor);
         historyPane.setForeground(textColor);
         
-        memoryLabel.setForeground(textColor);
+        memoryLabel.setForeground(isDarkMode ? vibrantYellow : vibrantOrange);
+        memoryLabel.setFont(new Font("Arial", Font.BOLD, 15));
         
         tabbedPane.setBackground(panelColor);
         tabbedPane.setForeground(textColor);
+        
+        // Update all panels with vibrant theme
+        getContentPane().setBackground(bgColor);
         
         updateHistoryDisplay();
     }
