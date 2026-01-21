@@ -70,6 +70,7 @@ public class Calculator extends JFrame implements KeyListener {
     double memory = 0;
     String currentAngleMode = "Degrees";
     int decimalPrecision = 2;
+    boolean shouldClearDisplay = false;
     
     // Scientific notation
     boolean useScientificNotation = false;
@@ -544,6 +545,7 @@ public class Calculator extends JFrame implements KeyListener {
             A = "0";
             B = null;
             operator = null;
+            shouldClearDisplay = false;
             updateDisplay();
         } else if (label.equals("+/-")) {
             if (!A.equals("0")) {
@@ -552,6 +554,7 @@ public class Calculator extends JFrame implements KeyListener {
             }
         } else if (label.equals("=")) {
             calculate();
+            shouldClearDisplay = true;
         } else if (label.equals("M+")) {
             try {
                 memory += Double.parseDouble(A);
@@ -579,15 +582,22 @@ public class Calculator extends JFrame implements KeyListener {
         } else if (isOperator(label)) {
             if (operator != null && B != null) {
                 calculate();
+                B = A;
+            } else {
+                B = A;
             }
             operator = label;
-            B = null;
+            shouldClearDisplay = true;
+            updateDisplay();
         } else if (Arrays.asList(scientificFunctions).contains(label) || 
                    Arrays.asList(advancedFunctions).contains(label) ||
                    Arrays.asList(besselFunctions).contains(label)) {
             handleScientificFunction(label);
         } else {
-            if (A.equals("0") && !label.equals(".")) {
+            if (shouldClearDisplay) {
+                A = label;
+                shouldClearDisplay = false;
+            } else if (A.equals("0") && !label.equals(".")) {
                 A = label;
             } else {
                 A += label;
@@ -843,12 +853,7 @@ public class Calculator extends JFrame implements KeyListener {
     }
     
     private void calculate() {
-        if (operator != null && B == null) {
-            B = A;
-            A = "0";
-        }
-        
-        if (B != null && operator != null) {
+        if (B != null && operator != null && !A.equals("0")) {
             try {
                 double numA = Double.parseDouble(A);
                 double numB = Double.parseDouble(B);
