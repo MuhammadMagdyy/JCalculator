@@ -251,7 +251,8 @@ public class Calculator extends JFrame implements KeyListener {
     }
     
     private JPanel createConversionTab() {
-        JPanel conversionPanel = new JPanel(new GridLayout(4, 1, 10, 10));
+        JPanel conversionPanel = new JPanel();
+        conversionPanel.setLayout(new BoxLayout(conversionPanel, BoxLayout.Y_AXIS));
         conversionPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
         
         // Length conversion
@@ -273,9 +274,13 @@ public class Calculator extends JFrame implements KeyListener {
             currencyRates, "Currency");
         
         conversionPanel.add(lengthPanel);
+        conversionPanel.add(Box.createVerticalStrut(5));
         conversionPanel.add(weightPanel);
+        conversionPanel.add(Box.createVerticalStrut(5));
         conversionPanel.add(tempPanel);
+        conversionPanel.add(Box.createVerticalStrut(5));
         conversionPanel.add(currencyPanel);
+        conversionPanel.add(Box.createVerticalGlue());
         
         JScrollPane scrollPane = new JScrollPane(conversionPanel);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -289,15 +294,30 @@ public class Calculator extends JFrame implements KeyListener {
                                            Map<String, Double> conversionMap, String type) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(new TitledBorder(title));
+        panel.setMaximumSize(new Dimension(1200, 100));
+        panel.setPreferredSize(new Dimension(1200, 90));
         
-        JPanel inputPanel = new JPanel(new FlowLayout());
-        JTextField inputField = new JTextField(15);
+        JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        JTextField inputField = new JTextField(12);
+        inputField.setFont(new Font("Arial", Font.PLAIN, 12));
         JComboBox<String> fromUnit = new JComboBox<>(units);
         JComboBox<String> toUnit = new JComboBox<>(units);
         toUnit.setSelectedIndex(1);
+        fromUnit.setFont(new Font("Arial", Font.PLAIN, 11));
+        toUnit.setFont(new Font("Arial", Font.PLAIN, 11));
+        
         JLabel resultLabel = new JLabel("Result: 0");
+        resultLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        resultLabel.setForeground(vibrantGreen);
         
         JButton convertBtn = new JButton("Convert");
+        convertBtn.setFont(new Font("Arial", Font.BOLD, 11));
+        convertBtn.setBackground(vibrantBlue);
+        convertBtn.setForeground(Color.WHITE);
+        convertBtn.setFocusPainted(false);
+        convertBtn.setBorderPainted(false);
+        convertBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
         convertBtn.addActionListener(e -> {
             try {
                 double value = Double.parseDouble(inputField.getText());
@@ -313,8 +333,10 @@ public class Calculator extends JFrame implements KeyListener {
                     result = baseValue / conversionMap.get(to);
                 }
                 resultLabel.setText("Result: " + formatNumber(result));
+                resultLabel.setForeground(vibrantGreen);
             } catch (NumberFormatException ex) {
                 resultLabel.setText("Invalid input");
+                resultLabel.setForeground(vibrantRed);
             }
         });
         
