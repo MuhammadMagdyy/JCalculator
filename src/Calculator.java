@@ -254,6 +254,8 @@ public class Calculator extends JFrame implements KeyListener {
         JPanel conversionPanel = new JPanel();
         conversionPanel.setLayout(new BoxLayout(conversionPanel, BoxLayout.Y_AXIS));
         conversionPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        conversionPanel.setBackground(isDarkMode ? darkPanel : lightPanel);
+        conversionPanel.setOpaque(true);
         
         // Length conversion
         JPanel lengthPanel = createConversionSubPanel("Length Conversion", 
@@ -294,10 +296,14 @@ public class Calculator extends JFrame implements KeyListener {
                                            Map<String, Double> conversionMap, String type) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(new TitledBorder(title));
+        panel.setBackground(isDarkMode ? darkPanel : lightPanel);
+        panel.setOpaque(true);
         panel.setMaximumSize(new Dimension(1200, 100));
         panel.setPreferredSize(new Dimension(1200, 90));
         
         JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        inputPanel.setBackground(isDarkMode ? darkPanel : lightPanel);
+        inputPanel.setOpaque(true);
         JTextField inputField = new JTextField(12);
         inputField.setFont(new Font("Arial", Font.PLAIN, 12));
         JComboBox<String> fromUnit = new JComboBox<>(units);
@@ -316,6 +322,7 @@ public class Calculator extends JFrame implements KeyListener {
         convertBtn.setForeground(Color.WHITE);
         convertBtn.setFocusPainted(false);
         convertBtn.setBorderPainted(false);
+        convertBtn.setOpaque(true);
         convertBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
         convertBtn.addActionListener(e -> {
@@ -328,9 +335,9 @@ public class Calculator extends JFrame implements KeyListener {
                 if (type.equals("Length") || type.equals("Weight")) {
                     double baseValue = value * conversionMap.get(from);
                     result = baseValue / conversionMap.get(to);
-                } else { // Currency
-                    double baseValue = value * conversionMap.get(from);
-                    result = baseValue / conversionMap.get(to);
+                } else { // Currency - rates are relative to USD
+                    double usdValue = value / conversionMap.get(from);
+                    result = usdValue * conversionMap.get(to);
                 }
                 resultLabel.setText("Result: " + formatNumber(result));
                 resultLabel.setForeground(vibrantGreen);
@@ -355,17 +362,33 @@ public class Calculator extends JFrame implements KeyListener {
     
     private JPanel createTemperatureConversionPanel() {
         JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(isDarkMode ? darkPanel : lightPanel);
+        panel.setOpaque(true);
         panel.setBorder(new TitledBorder("Temperature Conversion"));
         
-        JPanel inputPanel = new JPanel(new FlowLayout());
+        JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        inputPanel.setBackground(isDarkMode ? darkPanel : lightPanel);
+        inputPanel.setOpaque(true);
         JTextField inputField = new JTextField(15);
+        inputField.setFont(new Font("Arial", Font.PLAIN, 12));
         String[] tempUnits = {"Celsius", "Fahrenheit", "Kelvin"};
         JComboBox<String> fromTemp = new JComboBox<>(tempUnits);
         JComboBox<String> toTemp = new JComboBox<>(tempUnits);
         toTemp.setSelectedIndex(1);
+        fromTemp.setFont(new Font("Arial", Font.PLAIN, 11));
+        toTemp.setFont(new Font("Arial", Font.PLAIN, 11));
         JLabel resultLabel = new JLabel("Result: 0");
+        resultLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        resultLabel.setForeground(vibrantGreen);
         
         JButton convertBtn = new JButton("Convert");
+        convertBtn.setFont(new Font("Arial", Font.BOLD, 11));
+        convertBtn.setBackground(vibrantBlue);
+        convertBtn.setForeground(Color.WHITE);
+        convertBtn.setFocusPainted(false);
+        convertBtn.setBorderPainted(false);
+        convertBtn.setOpaque(true);
+        convertBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         convertBtn.addActionListener(e -> {
             try {
                 double value = Double.parseDouble(inputField.getText());
@@ -373,8 +396,10 @@ public class Calculator extends JFrame implements KeyListener {
                 String to = (String)toTemp.getSelectedItem();
                 double result = convertTemperature(value, from, to);
                 resultLabel.setText("Result: " + formatNumber(result));
+                resultLabel.setForeground(vibrantGreen);
             } catch (NumberFormatException ex) {
                 resultLabel.setText("Invalid input");
+                resultLabel.setForeground(vibrantRed);
             }
         });
         
