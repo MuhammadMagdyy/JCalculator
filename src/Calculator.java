@@ -3,16 +3,20 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.io.*;
+import java.util.*;
 import javax.swing.*;
 import javax.swing.border.*;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
 import java.text.DecimalFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
-public class Calculator {
+public class Calculator extends JFrame implements KeyListener {
     
-    int boardWidth = 900;
-    int boardHeight = 800;
+    int boardWidth = 1200;
+    int boardHeight = 900;
 
     // Theme colors
     Color darkBg = new Color(28,28,28);
@@ -23,24 +27,31 @@ public class Calculator {
     Color customLightGray = new Color(221,212,210);
     Color customDarkGray = new Color(80,80,80);
     Color customOrange = new Color(255,149,0);
-
+    Color customBlue = new Color(100,150,200);
+    Color customGreen = new Color(100,200,100);
+    
     // GUI Components
-    JFrame frame = new JFrame("Advanced Scientific Calculator");
     JLabel displayLabel = new JLabel();
-    JPanel displayPanel = new JPanel();
-    JPanel buttonsPanel = new JPanel();
-    JTextArea historyArea = new JTextArea();
+    JTextPane historyPane = new JTextPane();
     JLabel memoryLabel = new JLabel("Memory: 0");
     JComboBox<String> angleMode = new JComboBox<>(new String[]{"Degrees", "Radians", "Gradians"});
     JComboBox<Integer> decimalPlaces = new JComboBox<>(new Integer[]{2, 4, 6, 8});
+    JTabbedPane tabbedPane = new JTabbedPane();
+    
+    // Conversion units
+    Map<String, Double> lengthConversions = new HashMap<>();
+    Map<String, Double> weightConversions = new HashMap<>();
+    Map<String, Double> temperatureOffsets = new HashMap<>();
+    Map<String, Double> currencyRates = new HashMap<>();
 
     // Button arrays
     String[] topSymbols = {"AC", "+/-", "%"};
     String[] rightSymbols = {"÷", "×", "-", "+", "="};
     String[] scientificFunctions = {"sin", "cos", "tan", "log", "ln", "x²", "x^y", "√", "π", "e", "!"};
     String[] advancedFunctions = {"asin", "acos", "atan", "sinh", "cosh", "tanh"};
+    String[] besselFunctions = {"J0", "J1", "Y0", "Y1"};
     
-    // Calculation history
+    // Calculation history with timestamps
     ArrayList<String> history = new ArrayList<>();
     
     // Theme state
@@ -53,28 +64,110 @@ public class Calculator {
     double memory = 0;
     String currentAngleMode = "Degrees";
     int decimalPrecision = 2;
+    
+    // Scientific notation
+    boolean useScientificNotation = false;
+    
+    // Custom keyboard shortcuts
+    Map<Character, String> customShortcuts = new HashMap<>();
 
     Calculator() {
-        frame.setSize(boardWidth, boardHeight);
-        frame.setLocationRelativeTo(null);
-        frame.setResizable(true);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new BorderLayout());
-
+        setTitle("Advanced Scientific Calculator Pro");
+        setSize(boardWidth, boardHeight);
+        setLocationRelativeTo(null);
+        setResizable(true);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+        addKeyListener(this);
+        setFocusable(true);
+        
+        // Initialize conversions
+        initializeConversions();
+        initializeCustomShortcuts();
+        
         // Create menu bar
         createMenuBar();
 
-        // Create top panel with display and settings
-        JPanel topPanel = new JPanel(new BorderLayout());
+        // Create tabbed interface
+        tabbedPane.addTab("Calculator", createCalculatorTab());
+        tabbedPane.addTab("Conversions", createConversionTab());
+        tabbedPane.addTab("Settings", createSettingsTab());
         
+        add(tabbedPane, BorderLayout.CENTER);
+        
+        // Create bottom panel with history export
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton exportJSON = new JButton("Export JSON");
+        JButton exportCSV = new JButton("Export CSV");
+        JButton clearHistory = new JButton("Clear History");
+        
+        exportJSON.addActionListener(e -> exportHistoryAsJSON());
+        exportCSV.addActionListener(e -> exportHistoryAsCSV());
+        clearHistory.addActionListener(e -> {
+            history.clear();
+            updateHistoryDisplay();
+        });
+        
+        bottomPanel.add(exportJSON);
+        bottomPanel.add(exportCSV);
+        bottomPanel.add(clearHistory);
+        add(bottomPanel, BorderLayout.SOUTH);
+        
+        applyTheme();
+        setVisible(true);
+    }
+    
+    private void initializeConversions() {
+        // Length conversions (to meters)
+        lengthConversions.put("m", 1.0);
+        lengthConversions.put("km", 1000.0);
+        lengthConversions.put("cm", 0.01);
+        lengthConversions.put("mm", 0.001);
+        lengthConversions.put("mi", 1609.34);
+        lengthConversions.put("yd", 0.9144);
+        lengthConversions.put("ft", 0.3048);
+        lengthConversions.put("in", 0.0254);
+        
+        // Weight conversions (to kg)
+        weightConversions.put("kg", 1.0);
+        weightConversions.put("g", 0.001);
+        weightConversions.put("mg", 0.000001);
+        weightConversions.put("lb", 0.453592);
+        weightConversions.put("oz", 0.0283495);
+        weightConversions.put("t", 1000.0);
+        
+        // Currency rates (example - rates as of 2026)
+        currencyRates.put("USD", 1.0);
+        currencyRates.put("EUR", 0.92);
+        currencyRates.put("GBP", 0.79);
+        currencyRates.put("JPY", 149.5);
+        currencyRates.put("CAD", 1.36);
+        currencyRates.put("AUD", 1.53);
+        currencyRates.put("CHF", 0.88);
+        currencyRates.put("CNY", 7.24);
+    }
+    
+    private void initializeCustomShortcuts() {
+        customShortcuts.put('q', "sqrt");
+        customShortcuts.put('s', "sin");
+        customShortcuts.put('c', "cos");
+        customShortcuts.put('t', "tan");
+        customShortcuts.put('l', "log");
+        customShortcuts.put('n', "ln");
+        customShortcuts.put('f', "!");
+    }
+    
+    private JPanel createCalculatorTab() {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        
+        // Display
+        JPanel displayPanel = new JPanel(new BorderLayout());
         displayLabel.setFont(new Font("Arial", Font.PLAIN, 60));
         displayLabel.setHorizontalAlignment(JLabel.RIGHT);
         displayLabel.setText("0");
         displayLabel.setOpaque(true);
         displayLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
-
-        displayPanel.setLayout(new BorderLayout());
-        displayPanel.add(displayLabel);
+        displayPanel.add(displayLabel, BorderLayout.CENTER);
         
         // Settings panel
         JPanel settingsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -82,455 +175,825 @@ public class Calculator {
         decimalPlaces.setSelectedItem(2);
         decimalPlaces.addActionListener(e -> decimalPrecision = (Integer)decimalPlaces.getSelectedItem());
         
+        JCheckBox scientificNotationCheck = new JCheckBox("Scientific Notation");
+        scientificNotationCheck.addActionListener(e -> {
+            useScientificNotation = scientificNotationCheck.isSelected();
+            updateDisplay();
+        });
+        
         settingsPanel.add(new JLabel("Angle:"));
         settingsPanel.add(angleMode);
         settingsPanel.add(new JLabel("Decimal Places:"));
         settingsPanel.add(decimalPlaces);
+        settingsPanel.add(scientificNotationCheck);
         
+        JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.add(displayPanel, BorderLayout.CENTER);
         topPanel.add(settingsPanel, BorderLayout.SOUTH);
-        frame.add(topPanel, BorderLayout.NORTH);
-
-        // Create main content panel
-        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(topPanel, BorderLayout.NORTH);
         
-        // Buttons panel
-        buttonsPanel.setLayout(new GridLayout(6,6));
+        // Center panel with buttons and history
+        JPanel centerPanel = new JPanel(new BorderLayout());
         
-        // Memory panel
-        JPanel memoryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        memoryLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        memoryPanel.add(memoryLabel);
-        JButton mClear = new JButton("MC");
-        JButton mRecall = new JButton("MR");
-        JButton mAdd = new JButton("M+");
-        JButton mSubtract = new JButton("M-");
-        
-        mClear.addActionListener(e -> { memory = 0; updateMemoryLabel(); });
-        mRecall.addActionListener(e -> { try { displayLabel.setText(formatNumber(memory)); } catch(Exception ex) {} });
-        mAdd.addActionListener(e -> { try { memory += Double.parseDouble(displayLabel.getText()); updateMemoryLabel(); } catch(Exception ex) {} });
-        mSubtract.addActionListener(e -> { try { memory -= Double.parseDouble(displayLabel.getText()); updateMemoryLabel(); } catch(Exception ex) {} });
-        
-        memoryPanel.add(mClear);
-        memoryPanel.add(mRecall);
-        memoryPanel.add(mAdd);
-        memoryPanel.add(mSubtract);
-
-        // History panel
-        historyArea.setEditable(false);
-        historyArea.setLineWrap(true);
-        historyArea.setWrapStyleWord(true);
-        historyArea.setFont(new Font("Arial", Font.PLAIN, 11));
-        JScrollPane historyScroll = new JScrollPane(historyArea);
-        historyScroll.setPreferredSize(new Dimension(250, 400));
+        JPanel buttonsPanel = new JPanel(new GridLayout(8, 6, 5, 5));
+        buttonsPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
         
         // Create all buttons
-        String[] allFunctions = {
-            "AC", "+/-", "%", "÷", "sin", "cos",
-            "7", "8", "9", "×", "tan", "log",
-            "4", "5", "6", "-", "ln", "x²",
-            "1", "2", "3", "+", "x^y", "√",
-            "0", ".", "=", "π", "e", "!",
-            "asin", "acos", "atan", "sinh", "cosh", "tanh"
+        String[][] buttonLabels = {
+            {topSymbols[0], topSymbols[1], topSymbols[2], "Bessel", "Conversion", "Export"},
+            {"7", "8", "9", "÷", "sin", "asin"},
+            {"4", "5", "6", "×", "cos", "acos"},
+            {"1", "2", "3", "-", "tan", "atan"},
+            {"0", ".", "=", "+", "√", "^2"},
+            {"log", "ln", "!", "π", "e", "x^y"},
+            {"sinh", "cosh", "tanh", "J0", "J1", "M+"},
+            {"M-", "MR", "MC", "Y0", "Y1", "Hist"}
         };
         
-        for(String func : allFunctions) {
-            createButton(func);
+        for (String[] row : buttonLabels) {
+            for (String label : row) {
+                JButton btn = createButton(label);
+                buttonsPanel.add(btn);
+            }
         }
         
-        mainPanel.add(buttonsPanel, BorderLayout.CENTER);
-        mainPanel.add(memoryPanel, BorderLayout.SOUTH);
+        // Memory display
+        memoryLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        memoryLabel.setHorizontalAlignment(JLabel.CENTER);
+        memoryLabel.setBorder(new EmptyBorder(5, 5, 5, 5));
         
-        // Right panel for history
-        JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.add(new JLabel("Calculation History"), BorderLayout.NORTH);
-        rightPanel.add(historyScroll, BorderLayout.CENTER);
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.add(buttonsPanel, BorderLayout.CENTER);
+        leftPanel.add(memoryLabel, BorderLayout.SOUTH);
         
-        // Split pane for buttons and history
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainPanel, rightPanel);
-        splitPane.setDividerLocation(550);
+        centerPanel.add(leftPanel, BorderLayout.WEST);
         
-        frame.add(splitPane, BorderLayout.CENTER);
-
-        // Add keyboard support
-        frame.addKeyListener(new KeyListener() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                char keyChar = e.getKeyChar();
-                if (Character.isDigit(keyChar) || keyChar == '.' || keyChar == '+' || keyChar == '-' || keyChar == '*' || keyChar == '/') {
-                    simulateButtonClick(String.valueOf(keyChar));
-                } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    simulateButtonClick("=");
-                } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
-                    simulateButtonClick("AC");
+        // History panel with enhanced display
+        JPanel historyPanel = new JPanel(new BorderLayout());
+        historyPanel.setBorder(new TitledBorder("Calculation History"));
+        historyPane.setEditable(false);
+        historyPane.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        JScrollPane historyScroll = new JScrollPane(historyPane);
+        historyPanel.add(historyScroll, BorderLayout.CENTER);
+        
+        centerPanel.add(historyPanel, BorderLayout.CENTER);
+        mainPanel.add(centerPanel, BorderLayout.CENTER);
+        
+        return mainPanel;
+    }
+    
+    private JPanel createConversionTab() {
+        JPanel conversionPanel = new JPanel(new GridLayout(4, 1, 10, 10));
+        conversionPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        
+        // Length conversion
+        JPanel lengthPanel = createConversionSubPanel("Length Conversion", 
+            new String[]{"m", "km", "cm", "mm", "mi", "yd", "ft", "in"}, 
+            lengthConversions, "Length");
+        
+        // Weight conversion
+        JPanel weightPanel = createConversionSubPanel("Weight Conversion", 
+            new String[]{"kg", "g", "mg", "lb", "oz", "t"}, 
+            weightConversions, "Weight");
+        
+        // Temperature conversion
+        JPanel tempPanel = createTemperatureConversionPanel();
+        
+        // Currency conversion
+        JPanel currencyPanel = createConversionSubPanel("Currency Conversion", 
+            new String[]{"USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY"}, 
+            currencyRates, "Currency");
+        
+        conversionPanel.add(lengthPanel);
+        conversionPanel.add(weightPanel);
+        conversionPanel.add(tempPanel);
+        conversionPanel.add(currencyPanel);
+        
+        JScrollPane scrollPane = new JScrollPane(conversionPanel);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+        return wrapper;
+    }
+    
+    private JPanel createConversionSubPanel(String title, String[] units, 
+                                           Map<String, Double> conversionMap, String type) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(new TitledBorder(title));
+        
+        JPanel inputPanel = new JPanel(new FlowLayout());
+        JTextField inputField = new JTextField(15);
+        JComboBox<String> fromUnit = new JComboBox<>(units);
+        JComboBox<String> toUnit = new JComboBox<>(units);
+        toUnit.setSelectedIndex(1);
+        JLabel resultLabel = new JLabel("Result: 0");
+        
+        JButton convertBtn = new JButton("Convert");
+        convertBtn.addActionListener(e -> {
+            try {
+                double value = Double.parseDouble(inputField.getText());
+                String from = (String)fromUnit.getSelectedItem();
+                String to = (String)toUnit.getSelectedItem();
+                
+                double result;
+                if (type.equals("Length") || type.equals("Weight")) {
+                    double baseValue = value * conversionMap.get(from);
+                    result = baseValue / conversionMap.get(to);
+                } else { // Currency
+                    double baseValue = value * conversionMap.get(from);
+                    result = baseValue / conversionMap.get(to);
                 }
+                resultLabel.setText("Result: " + formatNumber(result));
+            } catch (NumberFormatException ex) {
+                resultLabel.setText("Invalid input");
             }
-            @Override
-            public void keyReleased(KeyEvent e) {}
-            @Override
-            public void keyTyped(KeyEvent e) {}
         });
-        frame.setFocusable(true);
         
-        applyTheme();
-        frame.setVisible(true);
-    }
-
-    void createButton(String label) {
-        JButton button = new JButton(label);
-        button.setFont(new Font("Arial", Font.PLAIN, 14));
-        button.setFocusable(false);
-        button.setOpaque(true);
-        button.setBorder(new LineBorder(Color.BLACK));
+        inputPanel.add(new JLabel("Value:"));
+        inputPanel.add(inputField);
+        inputPanel.add(new JLabel("From:"));
+        inputPanel.add(fromUnit);
+        inputPanel.add(new JLabel("To:"));
+        inputPanel.add(toUnit);
+        inputPanel.add(convertBtn);
+        inputPanel.add(resultLabel);
         
-        applyButtonStyle(button, label);
-        buttonsPanel.add(button);
-        button.addActionListener(e -> handleButtonClick(label));
+        panel.add(inputPanel, BorderLayout.NORTH);
+        return panel;
     }
-
-    void applyButtonStyle(JButton button, String label) {
-        if(Arrays.asList(topSymbols).contains(label)) {
-            button.setBackground(customLightGray);
-            button.setForeground(Color.BLACK);
-        } else if(Arrays.asList(rightSymbols).contains(label)) {
-            button.setBackground(customOrange);
-            button.setForeground(Color.WHITE);
-        } else if(Arrays.asList(scientificFunctions).contains(label) || Arrays.asList(advancedFunctions).contains(label)) {
-            button.setBackground(new Color(100, 150, 200));
-            button.setForeground(Color.WHITE);
+    
+    private JPanel createTemperatureConversionPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(new TitledBorder("Temperature Conversion"));
+        
+        JPanel inputPanel = new JPanel(new FlowLayout());
+        JTextField inputField = new JTextField(15);
+        String[] tempUnits = {"Celsius", "Fahrenheit", "Kelvin"};
+        JComboBox<String> fromTemp = new JComboBox<>(tempUnits);
+        JComboBox<String> toTemp = new JComboBox<>(tempUnits);
+        toTemp.setSelectedIndex(1);
+        JLabel resultLabel = new JLabel("Result: 0");
+        
+        JButton convertBtn = new JButton("Convert");
+        convertBtn.addActionListener(e -> {
+            try {
+                double value = Double.parseDouble(inputField.getText());
+                String from = (String)fromTemp.getSelectedItem();
+                String to = (String)toTemp.getSelectedItem();
+                double result = convertTemperature(value, from, to);
+                resultLabel.setText("Result: " + formatNumber(result));
+            } catch (NumberFormatException ex) {
+                resultLabel.setText("Invalid input");
+            }
+        });
+        
+        inputPanel.add(new JLabel("Value:"));
+        inputPanel.add(inputField);
+        inputPanel.add(new JLabel("From:"));
+        inputPanel.add(fromTemp);
+        inputPanel.add(new JLabel("To:"));
+        inputPanel.add(toTemp);
+        inputPanel.add(convertBtn);
+        inputPanel.add(resultLabel);
+        
+        panel.add(inputPanel, BorderLayout.NORTH);
+        return panel;
+    }
+    
+    private double convertTemperature(double value, String from, String to) {
+        // Convert to Celsius first
+        double celsius;
+        if (from.equals("Celsius")) {
+            celsius = value;
+        } else if (from.equals("Fahrenheit")) {
+            celsius = (value - 32) * 5/9;
+        } else { // Kelvin
+            celsius = value - 273.15;
+        }
+        
+        // Convert from Celsius to target
+        if (to.equals("Celsius")) {
+            return celsius;
+        } else if (to.equals("Fahrenheit")) {
+            return celsius * 9/5 + 32;
+        } else { // Kelvin
+            return celsius + 273.15;
+        }
+    }
+    
+    private JPanel createSettingsTab() {
+        JPanel settingsPanel = new JPanel(new GridLayout(5, 1, 10, 10));
+        settingsPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        
+        // Keyboard shortcuts customization
+        JPanel shortcutsPanel = new JPanel(new BorderLayout());
+        shortcutsPanel.setBorder(new TitledBorder("Custom Keyboard Shortcuts"));
+        JTextArea shortcutsText = new JTextArea(6, 40);
+        shortcutsText.setText("q = sqrt\ns = sin\nc = cos\nt = tan\nl = log\nn = ln\nf = !");
+        shortcutsText.setEditable(true);
+        shortcutsPanel.add(new JScrollPane(shortcutsText), BorderLayout.CENTER);
+        
+        JButton saveShortcutsBtn = new JButton("Save Shortcuts");
+        saveShortcutsBtn.addActionListener(e -> {
+            // Parse and save custom shortcuts
+            String[] lines = shortcutsText.getText().split("\n");
+            for (String line : lines) {
+                if (line.contains("=")) {
+                    String[] parts = line.split("=");
+                    if (parts.length == 2) {
+                        char key = parts[0].trim().charAt(0);
+                        String func = parts[1].trim();
+                        customShortcuts.put(key, func);
+                    }
+                }
+            }
+            JOptionPane.showMessageDialog(null, "Shortcuts saved!");
+        });
+        JPanel shortcutsBtnPanel = new JPanel();
+        shortcutsBtnPanel.add(saveShortcutsBtn);
+        shortcutsPanel.add(shortcutsBtnPanel, BorderLayout.SOUTH);
+        
+        // Theme settings
+        JPanel themePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        themePanel.setBorder(new TitledBorder("Theme Settings"));
+        JCheckBox darkModeCheck = new JCheckBox("Dark Mode", isDarkMode);
+        darkModeCheck.addActionListener(e -> {
+            isDarkMode = darkModeCheck.isSelected();
+            applyTheme();
+        });
+        themePanel.add(darkModeCheck);
+        
+        // Display format
+        JPanel displayPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        displayPanel.setBorder(new TitledBorder("Display Format"));
+        JCheckBox sciNotationCheck = new JCheckBox("Scientific Notation", useScientificNotation);
+        sciNotationCheck.addActionListener(e -> {
+            useScientificNotation = sciNotationCheck.isSelected();
+            updateDisplay();
+        });
+        displayPanel.add(sciNotationCheck);
+        
+        // About
+        JPanel aboutPanel = new JPanel(new BorderLayout());
+        aboutPanel.setBorder(new TitledBorder("About"));
+        JLabel aboutText = new JLabel(
+            "<html>Advanced Scientific Calculator Pro v2.5<br>" +
+            "Features: 20+ Scientific Functions, Unit Conversions, History Export,<br>" +
+            "Bessel Functions, Custom Shortcuts, Real-time Syntax Highlighting<br>" +
+            "© 2026 Muhammad Magdy</html>"
+        );
+        aboutPanel.add(aboutText, BorderLayout.WEST);
+        
+        // Help
+        JPanel helpPanel = new JPanel(new BorderLayout());
+        helpPanel.setBorder(new TitledBorder("Keyboard Shortcuts"));
+        JTextArea helpText = new JTextArea(5, 40);
+        helpText.setText("Enter: Calculate\nBackspace: Clear\nCustom shortcuts configured in Keyboard Shortcuts section");
+        helpText.setEditable(false);
+        helpPanel.add(new JScrollPane(helpText), BorderLayout.CENTER);
+        
+        settingsPanel.add(shortcutsPanel);
+        settingsPanel.add(themePanel);
+        settingsPanel.add(displayPanel);
+        settingsPanel.add(aboutPanel);
+        settingsPanel.add(helpPanel);
+        
+        JScrollPane scrollPane = new JScrollPane(settingsPanel);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+        return wrapper;
+    }
+    
+    private JButton createButton(String label) {
+        JButton btn = new JButton(label);
+        btn.setFont(new Font("Arial", Font.BOLD, 14));
+        btn.setOpaque(true);
+        btn.setFocusPainted(false);
+        
+        btn.addActionListener(e -> handleButtonClick(label));
+        
+        return btn;
+    }
+    
+    private void handleButtonClick(String label) {
+        if (label.equals("AC")) {
+            A = "0";
+            B = null;
+            operator = null;
+            updateDisplay();
+        } else if (label.equals("+/-")) {
+            if (!A.equals("0")) {
+                A = A.startsWith("-") ? A.substring(1) : "-" + A;
+                updateDisplay();
+            }
+        } else if (label.equals("=")) {
+            calculate();
+        } else if (label.equals("M+")) {
+            try {
+                memory += Double.parseDouble(A);
+                memoryLabel.setText("Memory: " + formatNumber(memory));
+            } catch (NumberFormatException e) {}
+        } else if (label.equals("M-")) {
+            try {
+                memory -= Double.parseDouble(A);
+                memoryLabel.setText("Memory: " + formatNumber(memory));
+            } catch (NumberFormatException e) {}
+        } else if (label.equals("MR")) {
+            A = formatNumber(memory);
+            updateDisplay();
+        } else if (label.equals("MC")) {
+            memory = 0;
+            memoryLabel.setText("Memory: 0");
+        } else if (label.equals("Bessel")) {
+            showBesselFunctionDialog();
+        } else if (label.equals("Conversion")) {
+            tabbedPane.setSelectedIndex(1);
+        } else if (label.equals("Export")) {
+            showExportDialog();
+        } else if (label.equals("Hist")) {
+            tabbedPane.setSelectedIndex(0);
+        } else if (isOperator(label)) {
+            if (operator != null && B != null) {
+                calculate();
+            }
+            operator = label;
+            B = null;
+        } else if (Arrays.asList(scientificFunctions).contains(label) || 
+                   Arrays.asList(advancedFunctions).contains(label) ||
+                   Arrays.asList(besselFunctions).contains(label)) {
+            handleScientificFunction(label);
         } else {
-            button.setBackground(customDarkGray);
-            button.setForeground(Color.WHITE);
-        }
-    }
-
-    void createMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
-        
-        // Theme menu
-        JMenu themeMenu = new JMenu("Theme");
-        JMenuItem darkItem = new JMenuItem("Dark Mode");
-        JMenuItem lightItem = new JMenuItem("Light Mode");
-        
-        darkItem.addActionListener(e -> { isDarkMode = true; applyTheme(); });
-        lightItem.addActionListener(e -> { isDarkMode = false; applyTheme(); });
-        
-        themeMenu.add(darkItem);
-        themeMenu.add(lightItem);
-        
-        // Help menu
-        JMenu helpMenu = new JMenu("Help");
-        JMenuItem aboutItem = new JMenuItem("About");
-        aboutItem.addActionListener(e -> JOptionPane.showMessageDialog(frame, 
-            "Advanced Scientific Calculator v2.0\n\nFeatures:\n- Basic arithmetic\n- Trigonometric functions\n- Logarithmic functions\n- Memory functions\n- Calculation history\n- Theme customization"));
-        helpMenu.add(aboutItem);
-        
-        menuBar.add(themeMenu);
-        menuBar.add(helpMenu);
-        frame.setJMenuBar(menuBar);
-    }
-
-    void applyTheme() {
-        Color bgColor = isDarkMode ? darkBg : lightBg;
-        Color fgColor = isDarkMode ? Color.WHITE : Color.BLACK;
-        Color panelColor = isDarkMode ? darkPanel : lightPanel;
-        
-        displayLabel.setBackground(bgColor);
-        displayLabel.setForeground(fgColor);
-        buttonsPanel.setBackground(panelColor);
-        historyArea.setBackground(panelColor);
-        historyArea.setForeground(fgColor);
-        frame.getContentPane().setBackground(panelColor);
-        memoryLabel.setForeground(fgColor);
-    }
-
-    void handleButtonClick(String label) {
-        try {
-            if(Arrays.asList(rightSymbols).contains(label)) {
-                handleOperator(label);
-            } else if(Arrays.asList(topSymbols).contains(label)) {
-                handleTopSymbol(label);
-            } else if(Arrays.asList(scientificFunctions).contains(label) || Arrays.asList(advancedFunctions).contains(label)) {
-                handleScientificFunction(label);
+            if (A.equals("0") && !label.equals(".")) {
+                A = label;
             } else {
-                handleNumberInput(label);
+                A += label;
             }
-        } catch(Exception e) {
-            displayLabel.setText("Error");
+            updateDisplay();
         }
     }
-
-    void handleOperator(String op) {
-        if(op.equals("=")) {
-            if(operator != null && operator.equals("x^y")) {
-                handleExponent();
-            } else if(A != null && operator != null) {
-                B = displayLabel.getText();
-                double numA = Double.parseDouble(A);
-                double numB = Double.parseDouble(B);
-                double result = 0;
-                boolean validOperation = true;
-                
-                if(operator.equals("+")) result = numA + numB;
-                else if(operator.equals("-")) result = numA - numB;
-                else if(operator.equals("×")) result = numA * numB;
-                else if(operator.equals("÷")) {
-                    if(numB != 0) result = numA / numB;
-                    else { displayLabel.setText("Error: Division by 0"); validOperation = false; }
-                }
-                
-                if(validOperation) {
-                    String resultStr = formatNumber(result);
-                    displayLabel.setText(resultStr);
-                    addToHistory(numA + " " + operator + " " + numB + " = " + resultStr);
-                    clearAll();
-                }
-            }
-        } else if("+-×÷".contains(op)) {
-            if(operator == null) {
-                A = displayLabel.getText();
-                displayLabel.setText("0");
-            }
-            operator = op;
-        }
-    }
-
-    void handleTopSymbol(String symbol) {
-        if(symbol.equals("AC")) {
-            clearAll();
-            displayLabel.setText("0");
-        } else if(symbol.equals("+/-")) {
-            double numDisplay = Double.parseDouble(displayLabel.getText());
-            numDisplay *= -1;
-            displayLabel.setText(formatNumber(numDisplay));
-        } else if(symbol.equals("%")) {
-            double numDisplay = Double.parseDouble(displayLabel.getText());
-            numDisplay /= 100;
-            displayLabel.setText(formatNumber(numDisplay));
-        }
-    }
-
-    void handleNumberInput(String num) {
-        if(num.equals(".")) {
-            if(!displayLabel.getText().contains(".")) {
-                displayLabel.setText(displayLabel.getText() + ".");
-            }
-        } else if("0123456789".contains(num)) {
-            if(displayLabel.getText().equals("0")) {
-                displayLabel.setText(num);
-            } else {
-                displayLabel.setText(displayLabel.getText() + num);
-            }
-        }
-    }
-
-    void handleScientificFunction(String function) {
+    
+    private void handleScientificFunction(String func) {
         try {
-            double numDisplay = Double.parseDouble(displayLabel.getText());
+            double val = Double.parseDouble(A);
             double result = 0;
-            String resultStr = "";
+            boolean calculated = false;
             
-            double angle = convertAngle(numDisplay);
-            
-            switch(function) {
-                case "sin":
-                    result = Math.sin(angle);
-                    resultStr = "sin(" + numDisplay + ") = " + formatNumber(result);
-                    break;
-                case "cos":
-                    result = Math.cos(angle);
-                    resultStr = "cos(" + numDisplay + ") = " + formatNumber(result);
-                    break;
-                case "tan":
-                    result = Math.tan(angle);
-                    resultStr = "tan(" + numDisplay + ") = " + formatNumber(result);
-                    break;
-                case "asin":
-                    if(numDisplay >= -1 && numDisplay <= 1) {
-                        result = Math.asin(numDisplay);
-                        result = convertAngleBack(result);
-                        resultStr = "arcsin(" + numDisplay + ") = " + formatNumber(result);
+            switch (func) {
+                case "sin": result = Math.sin(convertAngle(val)); calculated = true; break;
+                case "cos": result = Math.cos(convertAngle(val)); calculated = true; break;
+                case "tan": result = Math.tan(convertAngle(val)); calculated = true; break;
+                case "asin": 
+                    if (val >= -1 && val <= 1) {
+                        result = convertAngleBack(Math.asin(val));
+                        calculated = true;
                     } else {
-                        displayLabel.setText("Error: arcsin domain [-1,1]");
+                        displayLabel.setText("Domain Error");
                         return;
                     }
                     break;
                 case "acos":
-                    if(numDisplay >= -1 && numDisplay <= 1) {
-                        result = Math.acos(numDisplay);
-                        result = convertAngleBack(result);
-                        resultStr = "arccos(" + numDisplay + ") = " + formatNumber(result);
+                    if (val >= -1 && val <= 1) {
+                        result = convertAngleBack(Math.acos(val));
+                        calculated = true;
                     } else {
-                        displayLabel.setText("Error: arccos domain [-1,1]");
+                        displayLabel.setText("Domain Error");
                         return;
                     }
                     break;
-                case "atan":
-                    result = Math.atan(numDisplay);
-                    result = convertAngleBack(result);
-                    resultStr = "arctan(" + numDisplay + ") = " + formatNumber(result);
-                    break;
-                case "sinh":
-                    result = Math.sinh(numDisplay);
-                    resultStr = "sinh(" + numDisplay + ") = " + formatNumber(result);
-                    break;
-                case "cosh":
-                    result = Math.cosh(numDisplay);
-                    resultStr = "cosh(" + numDisplay + ") = " + formatNumber(result);
-                    break;
-                case "tanh":
-                    result = Math.tanh(numDisplay);
-                    resultStr = "tanh(" + numDisplay + ") = " + formatNumber(result);
-                    break;
-                case "log":
-                    if(numDisplay > 0) {
-                        result = Math.log10(numDisplay);
-                        resultStr = "log(" + numDisplay + ") = " + formatNumber(result);
+                case "atan": result = convertAngleBack(Math.atan(val)); calculated = true; break;
+                case "sinh": result = Math.sinh(val); calculated = true; break;
+                case "cosh": result = Math.cosh(val); calculated = true; break;
+                case "tanh": result = Math.tanh(val); calculated = true; break;
+                case "log": 
+                    if (val > 0) {
+                        result = Math.log10(val);
+                        calculated = true;
                     } else {
-                        displayLabel.setText("Error: log of non-positive");
+                        displayLabel.setText("Domain Error");
                         return;
                     }
                     break;
                 case "ln":
-                    if(numDisplay > 0) {
-                        result = Math.log(numDisplay);
-                        resultStr = "ln(" + numDisplay + ") = " + formatNumber(result);
+                    if (val > 0) {
+                        result = Math.log(val);
+                        calculated = true;
                     } else {
-                        displayLabel.setText("Error: ln of non-positive");
+                        displayLabel.setText("Domain Error");
                         return;
                     }
                     break;
                 case "√":
-                    if(numDisplay >= 0) {
-                        result = Math.sqrt(numDisplay);
-                        resultStr = "√(" + numDisplay + ") = " + formatNumber(result);
+                    if (val >= 0) {
+                        result = Math.sqrt(val);
+                        calculated = true;
                     } else {
-                        displayLabel.setText("Error: sqrt of negative");
+                        displayLabel.setText("Domain Error");
                         return;
                     }
                     break;
-                case "x²":
-                    result = numDisplay * numDisplay;
-                    resultStr = "(" + numDisplay + ")² = " + formatNumber(result);
-                    break;
-                case "π":
-                    displayLabel.setText(formatNumber(Math.PI));
-                    addToHistory("π = " + formatNumber(Math.PI));
-                    return;
-                case "e":
-                    displayLabel.setText(formatNumber(Math.E));
-                    addToHistory("e = " + formatNumber(Math.E));
-                    return;
-                case "!":
-                    if(numDisplay >= 0 && numDisplay == (int)numDisplay) {
-                        result = factorial((int)numDisplay);
-                        resultStr = numDisplay + "! = " + formatNumber(result);
-                    } else {
-                        displayLabel.setText("Error: Invalid factorial");
-                        return;
-                    }
-                    break;
-                case "x^y":
-                    A = String.valueOf(numDisplay);
-                    operator = "x^y";
-                    displayLabel.setText("0");
-                    return;
+                case "x²": result = val * val; calculated = true; break;
+                case "!": result = factorial((int)val); calculated = true; break;
+                case "π": A = formatNumber(Math.PI); updateDisplay(); return;
+                case "e": A = formatNumber(Math.E); updateDisplay(); return;
+                case "J0": result = besselJ0(val); calculated = true; break;
+                case "J1": result = besselJ1(val); calculated = true; break;
+                case "Y0": result = besselY0(val); calculated = true; break;
+                case "Y1": result = besselY1(val); calculated = true; break;
             }
             
-            displayLabel.setText(formatNumber(result));
-            addToHistory(resultStr);
-        } catch(NumberFormatException e) {
-            displayLabel.setText("Error: Invalid input");
+            if (calculated) {
+                A = formatNumber(result);
+                addToHistory(val + " " + func + " = " + A);
+                updateDisplay();
+            }
+        } catch (NumberFormatException e) {
+            displayLabel.setText("Error");
         }
     }
-
-    double convertAngle(double value) {
-        if(currentAngleMode.equals("Degrees")) {
-            return Math.toRadians(value);
-        } else if(currentAngleMode.equals("Radians")) {
-            return value;
-        } else { // Gradians
-            return Math.toRadians(value * 0.9);
+    
+    // Bessel functions (simplified implementations)
+    private double besselJ0(double x) {
+        double t = Math.abs(x);
+        if (t < 8.0) {
+            double y = t * t;
+            return (57568490574.0 + y * (-13362590354.0 + y * (651619640.7
+                    + y * (-11214424.18 + y * (77392.33017 + y * (-184.9052456)))))) 
+                    / (57568490411.0 + y * (1029532985.0 + y * (9494680.718
+                    + y * (59272.64853 + y * (267.8532712 + y * 1.0)))));
+        } else {
+            double z = 8.0 / t;
+            double y = z * z;
+            double xx = t - 0.785398164;
+            return Math.sqrt(0.636619772 / t) * (Math.cos(xx) * (1.0 + y * (-0.1098628627e-2
+                    + y * (0.2734510407e-4 + y * (-0.2073370639e-5 + y * 0.2093887211e-6))))
+                    - z * Math.sin(xx) * (0.04687499995 + y * (-0.2002690873e-3
+                    + y * (0.8449199096e-5 + y * (-0.88228987e-6 + y * 0.105787412e-6)))));
         }
     }
-
-    double convertAngleBack(double radians) {
-        if(currentAngleMode.equals("Degrees")) {
+    
+    private double besselJ1(double x) {
+        double t = Math.abs(x);
+        if (t < 8.0) {
+            double y = t * t;
+            return t * (72362614232.0 + y * (-7895059235.0 + y * (242396853.1
+                    + y * (-2972611.439 + y * (15704.48260 + y * (-30.16036606)))))) 
+                    / (144725228442.0 + y * (2300535178.0 + y * (18583304.74
+                    + y * (99447.43394 + y * (376.9991397 + y * 1.0)))));
+        } else {
+            double z = 8.0 / t;
+            double y = z * z;
+            double xx = t - 2.356194491;
+            return Math.sqrt(0.636619772 / t) * (Math.cos(xx) * (1.0 + y * (0.183105e-2
+                    + y * (-0.3516396496e-4 + y * (0.2457520174e-5 + y * (-0.240337019e-6)))))
+                    - z * Math.sin(xx) * (0.04687499995 + y * (-0.2002690873e-3
+                    + y * (0.8449199096e-5 + y * (-0.88228987e-6 + y * 0.105787412e-6)))));
+        }
+    }
+    
+    private double besselY0(double x) {
+        if (x < 8.0) {
+            double y = x * x;
+            double ans1 = -2957821389.0 + y * (7709578966.0 + y * (-512359803.6
+                    + y * (10087292.398 + y * (-86327.92757 + y * 228.4622733))));
+            double ans2 = 40076544269.0 + y * (745249964.86 + y * (7189466.438
+                    + y * (47447.26470 + y * (226.1030244 + y * 1.0))));
+            return (ans1 / ans2) + 0.636619772 * besselJ0(x) * Math.log(x);
+        } else {
+            double z = 8.0 / x;
+            double y = z * z;
+            double xx = x - 0.785398164;
+            return Math.sqrt(0.636619772 / x) * (Math.sin(xx) * (1.0 + y * (-0.1098628627e-2
+                    + y * (0.2734510407e-4 + y * (-0.2073370639e-5 + y * 0.2093887211e-6))))
+                    + z * Math.cos(xx) * (0.04687499995 + y * (-0.2002690873e-3
+                    + y * (0.8449199096e-5 + y * (-0.88228987e-6 + y * 0.105787412e-6)))));
+        }
+    }
+    
+    private double besselY1(double x) {
+        if (x < 8.0) {
+            double y = x * x;
+            double ans1 = x * (-0.4900604943e13 + y * (0.1275274390e13
+                    + y * (-0.5153438139e11 + y * (0.7349264551e9
+                    + y * (-0.4237922726e7 + y * 0.8511937935e4)))));
+            double ans2 = 0.2499580570e14 + y * (0.4244419664e12
+                    + y * (0.3733650367e10 + y * (0.2245904002e8
+                    + y * (0.1020426050e6 + y * (0.3549632885e3 + y)))));
+            return (ans1 / ans2) + 0.636619772 * (besselJ1(x) * Math.log(x) - 1.0 / x);
+        } else {
+            double z = 8.0 / x;
+            double y = z * z;
+            double xx = x - 2.356194491;
+            return Math.sqrt(0.636619772 / x) * (Math.sin(xx) * (1.0 + y * (0.183105e-2
+                    + y * (-0.3516396496e-4 + y * (0.2457520174e-5 + y * (-0.240337019e-6)))))
+                    + z * Math.cos(xx) * (0.04687499995 + y * (-0.2002690873e-3
+                    + y * (0.8449199096e-5 + y * (-0.88228987e-6 + y * 0.105787412e-6)))));
+        }
+    }
+    
+    private void showBesselFunctionDialog() {
+        String[] functions = {"J0", "J1", "Y0", "Y1"};
+        String selected = (String) JOptionPane.showInputDialog(
+            null, "Select Bessel Function:", "Bessel Functions",
+            JOptionPane.QUESTION_MESSAGE, null, functions, functions[0]);
+        
+        if (selected != null) {
+            handleScientificFunction(selected);
+        }
+    }
+    
+    private void showExportDialog() {
+        String[] options = {"JSON", "CSV", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(null,
+            "Export history as:", "Export History",
+            JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+            null, options, options[0]);
+        
+        if (choice == 0) {
+            exportHistoryAsJSON();
+        } else if (choice == 1) {
+            exportHistoryAsCSV();
+        }
+    }
+    
+    private void exportHistoryAsJSON() {
+        try {
+            JFileChooser fileChooser = new JFileChooser();
+            int result = fileChooser.showSaveDialog(null);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                if (!file.getName().endsWith(".json")) {
+                    file = new File(file.getAbsolutePath() + ".json");
+                }
+                
+                FileWriter writer = new FileWriter(file);
+                writer.write("{\n");
+                writer.write("  \"calculations\": [\n");
+                
+                for (int i = 0; i < history.size(); i++) {
+                    writer.write("    {\n");
+                    writer.write("      \"index\": " + (i+1) + ",\n");
+                    writer.write("      \"calculation\": \"" + escapeJson(history.get(i)) + "\",\n");
+                    writer.write("      \"timestamp\": \"" + LocalDateTime.now().format(
+                        DateTimeFormatter.ISO_DATE_TIME) + "\"\n");
+                    writer.write("    }" + (i < history.size() - 1 ? "," : "") + "\n");
+                }
+                
+                writer.write("  ]\n");
+                writer.write("}\n");
+                writer.close();
+                JOptionPane.showMessageDialog(null, "History exported to " + file.getName());
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Export failed: " + e.getMessage());
+        }
+    }
+    
+    private void exportHistoryAsCSV() {
+        try {
+            JFileChooser fileChooser = new JFileChooser();
+            int result = fileChooser.showSaveDialog(null);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                if (!file.getName().endsWith(".csv")) {
+                    file = new File(file.getAbsolutePath() + ".csv");
+                }
+                
+                FileWriter writer = new FileWriter(file);
+                writer.write("Index,Calculation,Timestamp\n");
+                
+                for (int i = 0; i < history.size(); i++) {
+                    writer.write((i+1) + ",\"" + history.get(i) + "\",\"" 
+                        + LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME) + "\"\n");
+                }
+                
+                writer.close();
+                JOptionPane.showMessageDialog(null, "History exported to " + file.getName());
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Export failed: " + e.getMessage());
+        }
+    }
+    
+    private String escapeJson(String str) {
+        return str.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+    }
+    
+    private void calculate() {
+        if (operator != null && B == null) {
+            B = A;
+            A = "0";
+        }
+        
+        if (B != null && operator != null) {
+            try {
+                double numA = Double.parseDouble(A);
+                double numB = Double.parseDouble(B);
+                double result = 0;
+                boolean valid = true;
+                
+                switch (operator) {
+                    case "+": result = numB + numA; break;
+                    case "-": result = numB - numA; break;
+                    case "×": result = numB * numA; break;
+                    case "÷":
+                        if (numA != 0) result = numB / numA;
+                        else {
+                            displayLabel.setText("Error: Division by zero");
+                            valid = false;
+                        }
+                        break;
+                }
+                
+                if (valid) {
+                    A = formatNumber(result);
+                    addToHistory(numB + " " + operator + " " + numA + " = " + A);
+                    updateDisplay();
+                    operator = null;
+                    B = null;
+                }
+            } catch (NumberFormatException e) {
+                displayLabel.setText("Error");
+            }
+        }
+    }
+    
+    private boolean isOperator(String label) {
+        return label.equals("+") || label.equals("-") || label.equals("×") || label.equals("÷");
+    }
+    
+    private double convertAngle(double angle) {
+        if (currentAngleMode.equals("Degrees")) {
+            return Math.toRadians(angle);
+        } else if (currentAngleMode.equals("Gradians")) {
+            return Math.toRadians(angle * 0.9);
+        }
+        return angle;
+    }
+    
+    private double convertAngleBack(double radians) {
+        if (currentAngleMode.equals("Degrees")) {
             return Math.toDegrees(radians);
-        } else if(currentAngleMode.equals("Radians")) {
-            return radians;
-        } else { // Gradians
+        } else if (currentAngleMode.equals("Gradians")) {
             return Math.toDegrees(radians) / 0.9;
         }
+        return radians;
     }
-
-    void handleExponent() {
-        if(A != null && operator != null && operator.equals("x^y")) {
-            double base = Double.parseDouble(A);
-            double exponent = Double.parseDouble(displayLabel.getText());
-            double result = Math.pow(base, exponent);
-            String resultStr = base + "^" + exponent + " = " + formatNumber(result);
-            displayLabel.setText(formatNumber(result));
-            addToHistory(resultStr);
-            clearAll();
-        }
-    }
-
-    long factorial(int n) {
-        if(n < 0) return 0;
-        if(n == 0 || n == 1) return 1;
-        long result = 1;
-        for(int i = 2; i <= n; i++) {
+    
+    private double factorial(int n) {
+        if (n < 0 || n > 170) return Double.NaN;
+        if (n <= 1) return 1;
+        double result = 1;
+        for (int i = 2; i <= n; i++) {
             result *= i;
         }
         return result;
     }
-
-    String formatNumber(double num) {
-        if(num % 1 == 0) {
-            return String.format("%.0f", num);
+    
+    private void addToHistory(String entry) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        history.add("[" + timestamp + "] " + entry);
+        updateHistoryDisplay();
+    }
+    
+    private void updateHistoryDisplay() {
+        historyPane.setText("");
+        SimpleAttributeSet attrs = new SimpleAttributeSet();
+        
+        for (String entry : history) {
+            try {
+                if (entry.contains("=")) {
+                    String[] parts = entry.split("=");
+                    StyleConstants.setForeground(attrs, isDarkMode ? Color.WHITE : Color.BLACK);
+                    historyPane.getDocument().insertString(historyPane.getDocument().getLength(), 
+                        parts[0] + "= ", attrs);
+                    
+                    StyleConstants.setForeground(attrs, customGreen);
+                    StyleConstants.setBold(attrs, true);
+                    historyPane.getDocument().insertString(historyPane.getDocument().getLength(), 
+                        parts[1] + "\n", attrs);
+                }
+            } catch (Exception e) {}
         }
+        
+        historyPane.setCaretPosition(historyPane.getDocument().getLength());
+    }
+    
+    private String formatNumber(double num) {
+        if (Double.isInfinite(num) || Double.isNaN(num)) {
+            return "Error";
+        }
+        
+        if (useScientificNotation) {
+            return String.format("%.2e", num);
+        }
+        
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(decimalPrecision);
+        df.setGroupingUsed(true);
         return df.format(num);
     }
-
-    void updateMemoryLabel() {
-        memoryLabel.setText("Memory: " + formatNumber(memory));
-    }
-
-    void clearAll() {
-        A = "0";
-        B = null;
-        operator = null;
-    }
-
-    void addToHistory(String calculation) {
-        history.add(calculation);
-        historyArea.append(calculation + "\n");
-        historyArea.setCaretPosition(historyArea.getDocument().getLength());
-    }
-
-    void simulateButtonClick(String value) {
-        if("+-×÷".contains(value)) {
-            if(operator == null) {
-                A = displayLabel.getText();
-                displayLabel.setText("0");
-            }
-            operator = value.equals("+") ? "+" : value.equals("-") ? "-" : value.equals("*") ? "×" : "÷";
-        } else if(value.equals("=")) {
-            handleButtonClick("=");
-        } else if(value.equals("AC")) {
-            clearAll();
-            displayLabel.setText("0");
-        } else if(Character.isDigit(value.charAt(0)) || value.equals(".")) {
-            if(displayLabel.getText().equals("0") && !value.equals(".")) {
-                displayLabel.setText(value);
-            } else if(!value.equals(".") || !displayLabel.getText().contains(".")) {
-                displayLabel.setText(displayLabel.getText() + value);
-            }
+    
+    private void updateDisplay() {
+        try {
+            double val = Double.parseDouble(A);
+            displayLabel.setText(formatNumber(val));
+        } catch (NumberFormatException e) {
+            displayLabel.setText(A);
         }
     }
+    
+    private void createMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+        
+        // Theme menu
+        JMenu themeMenu = new JMenu("Theme");
+        JMenuItem darkMode = new JMenuItem("Dark Mode");
+        JMenuItem lightMode = new JMenuItem("Light Mode");
+        
+        darkMode.addActionListener(e -> {
+            isDarkMode = true;
+            applyTheme();
+        });
+        lightMode.addActionListener(e -> {
+            isDarkMode = false;
+            applyTheme();
+        });
+        
+        themeMenu.add(darkMode);
+        themeMenu.add(lightMode);
+        
+        // Help menu
+        JMenu helpMenu = new JMenu("Help");
+        JMenuItem about = new JMenuItem("About");
+        about.addActionListener(e -> {
+            JOptionPane.showMessageDialog(null,
+                "Advanced Scientific Calculator Pro v2.5\n\n" +
+                "Features:\n" +
+                "• 23+ Scientific Functions\n" +
+                "• Bessel Functions (J0, J1, Y0, Y1)\n" +
+                "• Unit Conversions (Length, Weight, Temperature)\n" +
+                "• Currency Conversion\n" +
+                "• Scientific Notation Support\n" +
+                "• History Export (JSON, CSV)\n" +
+                "• Custom Keyboard Shortcuts\n" +
+                "• Syntax Highlighting\n" +
+                "• Memory Functions (M+, M-, MR, MC)\n" +
+                "• Multiple Angle Modes\n" +
+                "• Decimal Precision Settings\n\n" +
+                "© 2026 Muhammad Magdy");
+        });
+        helpMenu.add(about);
+        
+        menuBar.add(themeMenu);
+        menuBar.add(helpMenu);
+        setJMenuBar(menuBar);
+    }
+    
+    private void applyTheme() {
+        Color bgColor = isDarkMode ? darkBg : lightBg;
+        Color textColor = isDarkMode ? Color.WHITE : Color.BLACK;
+        Color panelColor = isDarkMode ? darkPanel : lightPanel;
+        
+        displayLabel.setBackground(bgColor);
+        displayLabel.setForeground(textColor);
+        
+        historyPane.setBackground(panelColor);
+        historyPane.setForeground(textColor);
+        
+        memoryLabel.setForeground(textColor);
+        
+        tabbedPane.setBackground(panelColor);
+        tabbedPane.setForeground(textColor);
+        
+        updateHistoryDisplay();
+    }
+    
+    @Override
+    public void keyTyped(KeyEvent e) {
+        char key = e.getKeyChar();
+        
+        if (Character.isDigit(key) || key == '.') {
+            handleButtonClick(String.valueOf(key));
+        } else if (key == '+' || key == '-' || key == '*' || key == '/') {
+            String op = key == '*' ? "×" : key == '/' ? "÷" : String.valueOf(key);
+            handleButtonClick(op);
+        } else if (key == '\n') {
+            handleButtonClick("=");
+        } else if (key == '\b') {
+            handleButtonClick("AC");
+        } else if (customShortcuts.containsKey(key)) {
+            handleButtonClick(customShortcuts.get(key));
+        }
+    }
+    
+    @Override
+    public void keyPressed(KeyEvent e) {}
+    
+    @Override
+    public void keyReleased(KeyEvent e) {}
 }
 
 
